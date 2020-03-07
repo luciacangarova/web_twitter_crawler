@@ -23,3 +23,4 @@ The main.py file will output all information about the whole database as well as
 
 ### Note:
 Each function is independent of another function, therefore it is possible to get only particular interactions or statistics on any collection in any order.
+
