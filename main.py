@@ -13,7 +13,6 @@ _access_secret =""
 _consumer_key = ""
 _consumer_secret = ""
 
-
 # create new storage instance
 my_storage = Storage('mongodb://localhost:27017/')
 
