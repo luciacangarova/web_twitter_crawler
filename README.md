@@ -19,7 +19,7 @@ In order to run the project, you have to:
 6. python main.py
 
 ### Output:
-The main.py file will output all the information about the whole database, as well as each cluster. For each appropriate function, a graph will be presented, which will be saved in a ./plots file.
+The main.py file will output all the information about the whole database, as well as each cluster. These information are also saved in the MongoDB in the log collection. For each appropriate function, a graph will be presented, which will be saved in a ./plots file.
 
 ### Note:
 Each function is independent of the functions, therefore it is possible to get only particular interactions or statistics on any collection in any order.
