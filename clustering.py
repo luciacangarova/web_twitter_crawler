@@ -3,7 +3,6 @@ import re
 import string
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import KMeans
 import collections
 import stopwords

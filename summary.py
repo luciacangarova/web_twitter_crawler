@@ -2,7 +2,7 @@ from collections import Counter
 from clustering import Cluster
 import stopwords
 from nltk import bigrams
-import operator
+import operator, sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
@@ -49,26 +49,38 @@ def get_quotes_number(storage_collection):
 def get_average_word_count(storage_collection):
     words = 0
     tweets = 0
+    max_number = 0
+    min_number = sys.maxsize
     for data in storage_collection.find():
         tweets += 1
         words += len(data['text'].split(' '))
+        if max_number<len(data['text'].split(' ')):
+            max_number = len(data['text'].split(' '))
+        if min_number>len(data['text'].split(' ')):
+            min_number = len(data['text'].split(' '))
     if tweets==0:
-        return 0
+        return 0, 0, 0
     else:
-        return words/tweets
+        return words/tweets, max_number, min_number
 
 # average count of chars per tweet
 def get_average_char_count(storage_collection):
     chars = 0
     tweets = 0
+    max_number = 0
+    min_number = sys.maxsize
     for data in storage_collection.find():
         tweets += 1
         # include also white spaces
         chars += len(data['text'])
+        if max_number<len(data['text']):
+            max_number = len(data['text'])
+        if min_number>len(data['text']):
+            min_number = len(data['text'])
     if tweets==0:
-        return 0
+        return 0, 0, 0
     else:
-        return chars/tweets
+        return chars/tweets, max_number, min_number
 
 # return importanr hashtags
 def get_important_hashtags(storage_collection, number):

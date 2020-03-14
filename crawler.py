@@ -50,13 +50,13 @@ class Crawler():
     def run_rest_search(self):
         # run the REST api using search function to track the words given to the class
         for i in range(len(self.words)):
-            for status in tweepy.Cursor(self.api.search, lang="en", include_entities=True, q=self.words[i], tweet_mode='extended', wait_on_rate_limit=True).items(100):
+            for status in tweepy.Cursor(self.api.search, lang="en", include_entities=True, q=self.words[i], tweet_mode='extended', wait_on_rate_limit=True).items(1000):
                 # save data to the MongoDB
                 self.storage.save_obj_data(status)
         
     def run_rest_user_timeline(self):
         # run the REST api using user_timeline function to track the usernames given to the class
         for i in range(len(self.users)):
-            for status in tweepy.Cursor(self.api.user_timeline, screen_name=self.users[i], lang="en", include_rts=False, tweet_mode='extended', wait_on_rate_limit=True).items(100):
+            for status in tweepy.Cursor(self.api.user_timeline, screen_name=self.users[i], lang="en", include_rts=False, tweet_mode='extended', wait_on_rate_limit=True).items(1000):
                 # save data to the MongoDB
                 self.storage.save_obj_data(status)

@@ -2,7 +2,7 @@ from crawler import Crawler
 from storage import Storage
 from clustering import Cluster
 import summary, network_analysis
-import time
+import time, math
 import threading
 
 ''' PART 1 - collect data'''
@@ -18,7 +18,7 @@ my_storage = Storage('mongodb://localhost:27017/')
 
 # create crawler, specified with words you want to search and users you want to track and time limit in seconds
 words = ['eco', 'climate', 'global warming', 'climate change', 'earth', 'global', 'planet', 'deforestation', 'change', 'sustainability',
-'depolarization', 'mutate', 'plastics', 'eco-friendly', 'vegan', 'vegetarian', 'zero-waste', 'recycle', 'enviromentalists']
+'depolarization', 'mutate', 'plastics', 'eco-friendly', 'vegan', 'vegetarian', 'zero-waste', 'recycle', 'enviromentalists', 'reduce']
 people = ['Greenpeace', 'WWF', 'foe_us', 'TheGreenParty', 'peopleandplanet', 'ClimateCentral', 'CIimateFacts', 'GretaThunberg']
 # time limit in seconds
 time_limit = 3600
@@ -73,12 +73,12 @@ thread2.join()
 
 # cluster data into groups
 clustering = Cluster()
-# get the ten percent of all tweets
-ten_percent = int(summary.get_total_number_in(my_storage.collection) * 0.01)
-my_storage.log_collection.insert_one({"_id":"Whole data", "Number of clusters:": ten_percent})
+# get the one percent of all tweets
+one_percent = int(summary.get_total_number_in(my_storage.collection) * 0.01)
+my_storage.log_collection.insert_one({"_id":"Whole data", "Number of clusters:": one_percent})
 # cluster the data and measure time how long it took
 start = time.time()
-clustering.cluster_data(ten_percent, my_storage)
+clustering.cluster_data(one_percent, my_storage)
 end = time.time()
 print("Time taken to cluster data: ", end - start)
 my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": {'Cluster Time': (end - start)}})
@@ -144,14 +144,16 @@ print("Quoted number of tweets: ", results)
 my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": { 'Quoted number of tweets': results}})
 
 # get the average count of words per tweet
-results = summary.get_average_word_count(my_storage.collection)
+results, maximum, minimum = summary.get_average_word_count(my_storage.collection)
 print("Average word count per tweet: ", results)
-my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": { 'Average word count per tweet': results}})
+my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": { 'Average word count per tweet': results,
+"Maximum word count per tweet": maximum, "Minimum word count per tweet":minimum}})
 
 # get the average count of characters per tweet
-results = summary.get_average_char_count(my_storage.collection)
+results, maximum, minimum = summary.get_average_char_count(my_storage.collection)
 print("Average char count per tweet: ", results)
-my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": { 'Average char count per tweet': results}})
+my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": { 'Average char count per tweet': results,
+"Maximum char count per tweet": maximum, "Minimum char count per tweet":minimum}})
 
 # get the most frequent bigrams in the whole data (2 words which stands next to each other in the text)
 results = summary.get_frequent_bigrams(my_storage.collection, 10)
@@ -176,7 +178,7 @@ results = [
 
 data = []
 data.extend(network_analysis.network_analysis(my_storage.collection))
-for i in range(len(results)-1):
+for i in range(len(results)):
     my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": {results[i]: data[i]}})
 
 # statistics about the individual clusters
@@ -185,12 +187,24 @@ print("Data about the individual clusters: ")
 print("---------------------------------------------------------------------------------------------------")
 print("---------------------------------------------------------------------------------------------------")
 average_number = 0
-for i in range(ten_percent):
+max_number = 0
+min_number = summary.get_total_number_in(my_storage.collection)
+max_cluster = ""
+min_cluster = ""
+for i in range(one_percent):
     # get the name of the cluster in mongoDB
     instance = my_storage.db["cluster_"+ str(i)]
     name = str(instance.name)
+    number = summary.get_total_number_in(instance)
+    # extract the biggest and smallest cluster
+    if number>max_number:
+        max_number = number
+        max_cluster = name
+    if number<min_number:
+        min_number = number
+        min_cluster = name
     # count the average number of tweets
-    average_number += summary.get_total_number_in(instance)
+    average_number += number
     # if we do not have garbage cluster do the interaction and network analysis
     if(summary.get_total_number_in(instance)>20):
         # returns the number of data in the cluster
@@ -234,14 +248,16 @@ for i in range(ten_percent):
         my_storage.log_collection.update_one({"_id":name}, { "$set": { 'Quoted number of tweets': results}})
 
         # returns the average word count per tweet in the cluster
-        results = summary.get_average_word_count(instance)
+        results, maximum, minimum = summary.get_average_word_count(instance)
         print("Average word count per tweet: ", results)
-        my_storage.log_collection.update_one({"_id":name}, { "$set": { 'Average word count per tweet': results}})
+        my_storage.log_collection.update_one({"_id":name}, { "$set": { 'Average word count per tweet': results, 
+        "Maximum word count per tweet": maximum, "Minimum word count per tweet":minimum}})
 
         # returns the average character count per tweet in the cluster
-        results = summary.get_average_char_count(instance)
+        results, maximum, minimum = summary.get_average_char_count(instance)
         print("Average char count per tweet: ", results)
-        my_storage.log_collection.update_one({"_id":name}, { "$set": { 'Average char count per tweet': results}})
+        my_storage.log_collection.update_one({"_id":name}, { "$set": { 'Average char count per tweet': results,
+        "Maximum char count per tweet": maximum, "Minimum char count per tweet":minimum}})
 
         # returns the most top 10 frequent bigrams in the cluster
         results = summary.get_frequent_bigrams(instance, 10)
@@ -266,12 +282,25 @@ for i in range(ten_percent):
 
         data = []
         data.extend(network_analysis.network_analysis(instance, False))
-        for i in range(len(results)-1):
+        for i in range(len(results)):
             my_storage.log_collection.update_one({"_id":name}, { "$set": { results[i]: data[i]}})
         print("---------------------------------------------------------------------------------------------------")
 
 print("---------------------------------------------------------------------------------------------------")
 # get the average count of tweets/retweets/quotes per cluster
-print("Average number of tweets in a cluster: ", average_number/ten_percent)
-my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": {"Average number of tweets in a cluster": average_number/ten_percent}})
+mean = average_number/one_percent 
+print("Average number of tweets in a cluster: ", mean)
+print("The biggest cluster: ", max_cluster, "with", max_number, "tweets")
+print("The smallest cluster: ", min_cluster, "with", min_number, "tweet(s)")
+# get the standard deviation
+variance = 0
+for i in range(one_percent):
+    instance = my_storage.db["cluster_"+ str(i)]
+    number = summary.get_total_number_in(instance)
+    name = str(instance.name)
+    variance += (mean-number)**2
+print("The standard deviation of the number of tweets per cluster: ", math.sqrt(variance/one_percent))
+my_storage.log_collection.update_one({"_id":"Whole data"}, { "$set": {"Average number of tweets in a cluster": average_number/one_percent,
+"The biggest cluster" : (max_cluster, max_number), "The smallest cluster" : (min_cluster, min_number),
+"The standard deviation of the number of tweets per cluster": math.sqrt(variance/one_percent)}})
 print("---------------------------------------------------------------------------------------------------")

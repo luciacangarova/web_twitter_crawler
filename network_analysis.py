@@ -121,32 +121,24 @@ def network_analysis(storage_collection, plot_data=True):
         plot_time_results(per_day,"Number of ties in a day, for " + for_what, "Day", "Count", 
         str(storage_collection.name)+"_ties_"+for_what)
 
-    # help dictionary to recognize triads
-    help_dict = { '003':'the empty graph', '012':'(A --> B, C)', '102':'(A <-> B, C)', '021D':'(A <-- B --> C)',
-    '021U':'(A --> B <-- C)', '021C':'(A --> B --> C)', '111D':'(A <-> B <-- C)', '111U':'(A <-> B --> C)',
-    '030T':'(A --> B <-- C, A --> C)', '030C':'(A <-- B <-- C, A --> C)', '201':'(A <-> B <-> C)',
-    '120D':'(A <-- B --> C, A <-> C)', '120U':'(A --> B <-- C, A <-> C)', '120C':'(A --> B --> C, A <-> C)',
-    '210':'(A --> B <-> C, A <-> C)', '300':'(A <-> B <-> C, A <-> C)'}
-
     # collect all triads and dyads for tweets, retweets and quotes
     dyads = {}
     triads = {}
     for data, for_what in [(user_interactions_tweets, "tweets"), (user_interactions_retweets, "retweets"), (user_interactions_quotes, "quotes")]:
+        # create graph to analyze triads
+        G = nx.DiGraph()
+        for key, value in data.items():
+            for item in value.items():
+                G.add_edges_from([(key, item[0])], weight=item[1])
+        triad_dict = nx.triadic_census(G)
+        
         # create list of edges between users
         tuples =[]
         for key, value in data.items():
             for item in value.items():
                 tuples.append((key, item[0]))
-
-        triad_dict = {}
-
-        # create graph to analyze triads
+        # create graph to analyze ties
         G = ig.Graph.TupleList(tuples, directed = True)
-        tc = G.triad_census()
-        for i in range(16):
-            # save number of triads to to corresponding distionary element
-            triad_dict[help_dict[str(list(tc._remap.keys())[i])]] = list(tc)[i]
-
         # get all dyads
         dc = G.dyad_census()
         dyad_dict = dc.as_dict()
